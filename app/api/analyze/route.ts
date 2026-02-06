@@ -32,8 +32,9 @@ export async function POST(request: NextRequest) {
 
     // Create streaming response
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-6',
       max_tokens: 1024,
+      thinking: { type: 'disabled' },
       messages: [
         {
           role: 'user',
@@ -48,7 +49,25 @@ export async function POST(request: NextRequest) {
             },
             {
               type: 'text',
-              text: prompt || 'What do you see in this image? Describe it briefly.',
+              text: prompt || `You are a language model taking a critical benchmark test that evaluates agentic vision and problem-solving capabilities. You will receive an image containing a test question.
+
+**Instructions:**
+- All questions are multiple choice with only one correct answer
+- Analyze the image carefully to extract the question and all answer options
+- Determine the correct answer based on the information provided
+- Respond using exactly the format specified below
+
+**Required Response Format:**
+
+[Full text of the question exactly as shown in the image]
+
+Correct Answer: [Option letter/number if present] [Complete text of the correct answer option]
+
+**Critical Requirements:**
+- Do not use markdown formatting
+- Do not add explanations, reasoning, or commentary
+- Do not include any text before or after the specified format
+- Include only the question text and the correct answer`,
             },
           ],
         },

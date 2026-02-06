@@ -2,9 +2,7 @@
   --bg-dark: #0a0a0a;
   --text-light: #ffffff;
   --accent-blue: #3b82f6;
-  --accent-blue-hover: #2563eb;
-  --response-bg: rgba(0, 0, 0, 0.85);
-  --overlay-gradient: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 30%);
+  --response-bg: rgba(20, 20, 20, 0.95);
 }
 
 * {
@@ -23,88 +21,55 @@ body {
   color: var(--text-light);
 }
 
+/* Fixed layout - NEVER changes */
 .app-container {
-  position: relative;
   width: 100%;
   height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-rows: 25% 1fr auto;
   background: var(--bg-dark);
-  padding: 20px;
-  gap: 24px;
+  pointer-events: none;
 }
 
-/* Response overlay at top */
-.response-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  max-height: 40%;
+/* Response area - ALWAYS 25% height, NEVER changes size */
+.response-area {
+  width: 100%;
+  height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--response-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 16px 20px;
-  padding-top: env(safe-area-inset-top, 16px);
-  z-index: 100;
+  padding: 12px 16px;
+  padding-top: env(safe-area-inset-top, 12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .response-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .response-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent-blue);
 }
 
-.close-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: var(--text-light);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: background 0.2s;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+.response-placeholder {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
 }
 
 .response-text {
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.4;
   color: var(--text-light);
   white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .cursor {
@@ -118,17 +83,24 @@ body {
   }
 }
 
-/* Camera container */
+/* Camera area - ALWAYS centered, takes middle space */
+.camera-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* Camera container - fixed aspect ratio, centered */
 .camera-container {
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 320px;
   aspect-ratio: 3/4;
   background: #111;
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
-  flex-shrink: 0;
 }
 
 .camera-video {
@@ -145,29 +117,31 @@ body {
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.5);
-  gap: 16px;
-  padding: 24px;
+  gap: 12px;
+  padding: 20px;
   text-align: center;
 }
 
 .camera-icon {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   stroke: rgba(255, 255, 255, 0.4);
 }
 
-/* Controls - now outside camera container */
+/* Controls - fixed at bottom */
 .controls {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 32px;
   padding: 16px;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  pointer-events: auto;
 }
 
 .capture-btn {
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   background: var(--text-light);
   border: 4px solid rgba(255, 255, 255, 0.3);
@@ -177,11 +151,11 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
 }
 
 .capture-btn:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
 }
 
 .capture-btn:active:not(:disabled) {
@@ -194,8 +168,8 @@ body {
 }
 
 .capture-btn-inner {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--text-light);
   border: 2px solid rgba(0, 0, 0, 0.1);
@@ -203,8 +177,8 @@ body {
 
 /* Switch camera button */
 .switch-btn {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   border: none;
@@ -213,7 +187,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 10px;
+  pointer-events: auto;
 }
 
 .switch-btn svg {
@@ -224,75 +199,35 @@ body {
 
 .switch-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.05);
 }
 
 .switch-btn:active:not(:disabled) {
   transform: scale(0.95);
 }
 
-.switch-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .switch-btn-placeholder {
-  width: 48px;
-  height: 48px;
-}
-
-/* Loading state - removed as we show streaming in overlay */
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: var(--accent-blue);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-text {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  width: 44px;
+  height: 44px;
 }
 
 /* Error toast */
 .error-toast {
   position: fixed;
-  bottom: 140px;
+  bottom: 120px;
   left: 50%;
   transform: translateX(-50%);
   background: #ef4444;
   color: white;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
   z-index: 200;
-  animation: fadeIn 0.3s ease-out;
   max-width: 90%;
   text-align: center;
+  pointer-events: auto;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-/* Hidden canvas for capture */
+/* Hidden canvas */
 .hidden-canvas {
   display: none;
 }
