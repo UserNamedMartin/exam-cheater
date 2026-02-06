@@ -83,8 +83,25 @@ export default function CameraPage() {
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+
+    // Get original dimensions
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+
+    // Resize if too large (max 1920px on longest side for API limits)
+    const MAX_SIZE = 1920;
+    if (width > MAX_SIZE || height > MAX_SIZE) {
+      if (width > height) {
+        height = Math.round((height * MAX_SIZE) / width);
+        width = MAX_SIZE;
+      } else {
+        width = Math.round((width * MAX_SIZE) / height);
+        height = MAX_SIZE;
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -95,7 +112,9 @@ export default function CameraPage() {
     }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = canvas.toDataURL('image/jpeg', 1.0);
+
+    // Use 0.85 quality for good balance of quality and size
+    const imageData = canvas.toDataURL('image/jpeg', 0.85);
     await analyzeImage(imageData);
   };
 
