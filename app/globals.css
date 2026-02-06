@@ -13,7 +13,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -31,6 +32,8 @@ html, body {
   align-items: center;
   justify-content: center;
   background: var(--bg-dark);
+  padding: 20px;
+  gap: 24px;
 }
 
 /* Response overlay at top */
@@ -56,6 +59,7 @@ html, body {
     transform: translateY(-100%);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -103,6 +107,17 @@ html, body {
   white-space: pre-wrap;
 }
 
+.cursor {
+  animation: blink 1s step-end infinite;
+  opacity: 1;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* Camera container */
 .camera-container {
   position: relative;
@@ -113,6 +128,7 @@ html, body {
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
 }
 
 .camera-video {
@@ -140,15 +156,13 @@ html, body {
   stroke: rgba(255, 255, 255, 0.4);
 }
 
-/* Controls */
+/* Controls - now outside camera container */
 .controls {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  gap: 32px;
+  padding: 16px;
 }
 
 .capture-btn {
@@ -187,23 +201,47 @@ html, body {
   border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
-/* Loading state */
-.loading-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+/* Switch camera button */
+.switch-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  z-index: 50;
-  border-radius: 24px;
+  padding: 12px;
 }
+
+.switch-btn svg {
+  width: 100%;
+  height: 100%;
+  stroke: var(--text-light);
+}
+
+.switch-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.switch-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.switch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.switch-btn-placeholder {
+  width: 48px;
+  height: 48px;
+}
+
+/* Loading state - removed as we show streaming in overlay */
 
 .spinner {
   width: 48px;
@@ -228,7 +266,7 @@ html, body {
 /* Error toast */
 .error-toast {
   position: fixed;
-  bottom: 100px;
+  bottom: 140px;
   left: 50%;
   transform: translateX(-50%);
   background: #ef4444;
@@ -247,6 +285,7 @@ html, body {
     opacity: 0;
     transform: translateX(-50%) translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);

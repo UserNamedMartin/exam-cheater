@@ -2,6 +2,8 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 
+type FacingMode = 'environment' | 'user';
+
 export default function CameraPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -10,14 +12,22 @@ export default function CameraPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [facingMode, setFacingMode] = useState<FacingMode>('environment');
 
   // Initialize camera with max resolution
-  const initCamera = useCallback(async () => {
+  const initCamera = useCallback(async (facing: FacingMode) => {
+    // Stop existing stream
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    setCameraReady(false);
+
     try {
       // Request max resolution with 3:4 aspect ratio preference
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: 'environment', // Back camera on mobile
+          facingMode: facing,
           width: { ideal: 4096 },
           height: { ideal: 3072 }, // 3:4 aspect ratio
         },
@@ -38,20 +48,15 @@ export default function CameraPage() {
       console.error('Camera access error:', err);
       setError('Could not access camera. Please allow camera permissions.');
     }
+  }, [stream]);
+
+  // Initialize on mount
+  useEffect(() => {
+    initCamera(facingMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cleanup on unmount
-  useEffect(() => {
-    initCamera();
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [initCamera]);
-
-  // Clear stream on change
   useEffect(() => {
     return () => {
       if (stream) {
@@ -59,6 +64,13 @@ export default function CameraPage() {
       }
     };
   }, [stream]);
+
+  // Switch camera
+  const switchCamera = () => {
+    const newFacing = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(newFacing);
+    initCamera(newFacing);
+  };
 
   // Capture photo at max resolution
   const capturePhoto = async () => {
@@ -74,6 +86,12 @@ export default function CameraPage() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Mirror the image if using front camera
+    if (facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+
     // Draw frame to canvas
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -84,10 +102,11 @@ export default function CameraPage() {
     await analyzeImage(imageData);
   };
 
-  // Send image to Claude API
+  // Send image to Claude API with streaming
   const analyzeImage = async (imageData: string) => {
     setLoading(true);
     setError(null);
+    setResponse('');
 
     try {
       const res = await fetch('/api/analyze', {
@@ -99,16 +118,50 @@ export default function CameraPage() {
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
+        const data = await res.json();
         throw new Error(data.error || 'Failed to analyze image');
       }
 
-      setResponse(data.response);
+      // Handle streaming response
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              break;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.text) {
+                fullText += parsed.text;
+                setResponse(fullText);
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze image');
-    } finally {
       setLoading(false);
     }
   };
@@ -124,19 +177,24 @@ export default function CameraPage() {
   return (
     <div className="app-container">
       {/* Response overlay */}
-      {response && (
+      {(response || loading) && (
         <div className="response-overlay">
           <div className="response-header">
-            <span className="response-label">Claude Response</span>
+            <span className="response-label">
+              {loading && !response ? 'Analyzing...' : 'Claude Response'}
+            </span>
             <button
               className="close-btn"
-              onClick={() => setResponse(null)}
+              onClick={() => { setResponse(null); setLoading(false); }}
               aria-label="Close response"
             >
               ×
             </button>
           </div>
-          <p className="response-text">{response}</p>
+          <p className="response-text">
+            {response || 'Processing image...'}
+            {loading && <span className="cursor">▋</span>}
+          </p>
         </div>
       )}
 
@@ -158,28 +216,39 @@ export default function CameraPage() {
           autoPlay
           playsInline
           muted
-          style={{ display: cameraReady ? 'block' : 'none' }}
+          style={{
+            display: cameraReady ? 'block' : 'none',
+            transform: facingMode === 'user' ? 'scaleX(-1)' : 'none'
+          }}
         />
+      </div>
 
-        {/* Loading overlay */}
-        {loading && (
-          <div className="loading-container">
-            <div className="spinner" />
-            <span className="loading-text">Analyzing with Claude...</span>
-          </div>
-        )}
+      {/* Controls below camera */}
+      <div className="controls">
+        <button
+          className="switch-btn"
+          onClick={switchCamera}
+          disabled={loading}
+          aria-label="Switch camera"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <path d="M9 13a3 3 0 1 0 6 0 3 3 0 1 0-6 0" />
+            <path d="M17 8l-2 2m0-2l2 2" />
+          </svg>
+        </button>
 
-        {/* Capture button */}
-        <div className="controls">
-          <button
-            className="capture-btn"
-            onClick={capturePhoto}
-            disabled={!cameraReady || loading}
-            aria-label="Take photo"
-          >
-            <div className="capture-btn-inner" />
-          </button>
-        </div>
+        <button
+          className="capture-btn"
+          onClick={capturePhoto}
+          disabled={!cameraReady || loading}
+          aria-label="Take photo"
+        >
+          <div className="capture-btn-inner" />
+        </button>
+
+        {/* Placeholder for symmetry */}
+        <div className="switch-btn-placeholder" />
       </div>
 
       {/* Hidden canvas for capture */}
